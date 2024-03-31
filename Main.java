@@ -31,13 +31,15 @@ public class Main {
             }
         }
         // printLinks(links);
-        ArrayList<String> candidate_keys = getCKeys(dict_fds, rel_schema);
+        ArrayList<String> candidate_keys = getCandidateKeys(dict_fds, rel_schema);
         System.out.println("Func dependencies: " + dict_fds);
         System.out.println("Candidate keys: " + candidate_keys);
+        System.out.println("Relation is 2NF? " + check2NF(rel_schema, candidate_keys, dict_fds));
         sc.close();
     }
 
-    public static ArrayList<String> getCKeys(HashMap<String, String> dict_fds, String schema) {
+    // --> put all the ck stuff in a separate file
+    public static ArrayList<String> getCandidateKeys(HashMap<String, String> dict_fds, String schema) {
         ArrayList<String> ck = new ArrayList<>();
         ArrayList<String> combos = new ArrayList<>();
 
@@ -58,8 +60,10 @@ public class Main {
                 if (closure.equals(schema)) {
                     ck.add(attr);
 
-                    // if any attribute in the comibantion list contains the attr candidate key,
-                    // than its corresponding position in the check_sk will be marked false
+                    /*
+                     * if any attribute in the comibantion list contains the attr candidate key,
+                     * than its corresponding position in the check_sk will be marked false
+                     */
                     for (String s : combos) {
                         if (searchIn(attr, s) && !s.equals(attr)) {
                             check_sk.set(combos.indexOf(s), false);
@@ -89,12 +93,16 @@ public class Main {
         return finds.toString();
     }
 
-    public static boolean searchIn(String target, String finds) {
+    public static boolean searchIn(String target, String findIn) {
+        /*
+         * function to search whether a target string is inside the findIn string.
+         * For e.g: returns true for target="AC", findIn="ABC"
+         */
         boolean main_flag = true;
         boolean sub_flag = false;
         for (String s : target.split("")) {
             sub_flag = false;
-            for (String fs : finds.split("")) {
+            for (String fs : findIn.split("")) {
                 if (s.equals(fs)) {
                     sub_flag = true;
                 }
@@ -123,6 +131,18 @@ public class Main {
         temp += schema.charAt(indx);
         allCombos(schema, indx + 1, res, temp);
         // return res;
+    }
+
+    public static boolean check2NF(String schema, ArrayList<String> ckeys, HashMap<String, String> fds) {
+        Set<String> dets = fds.keySet();
+        for (String key : ckeys) {
+            for (String attr : dets) {
+                if (searchIn(attr, key)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 }
