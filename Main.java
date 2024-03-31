@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class Main {
 
@@ -39,13 +40,32 @@ public class Main {
     public static ArrayList<String> getCKeys(HashMap<String, String> dict_fds, String schema) {
         ArrayList<String> ck = new ArrayList<>();
         ArrayList<String> combos = new ArrayList<>();
+
         allCombos(schema, 0, combos, "");
-        // System.out.println(combos);
+
+        // Initializing and creating a boolean list, which will help in efficiently
+        // checking for redundant attributes in finding candidate key
+        ArrayList<Boolean> check_sk = new ArrayList<Boolean>(combos.size());
+        for (int i = 0; i < combos.size(); i++) {
+            check_sk.add(true);
+        }
+
         for (String attr : combos) {
-            String closure = sortString(getClosureSet(attr, dict_fds));
-            // System.out.println("CLosure of " + attr + ": " + closure);
-            if (closure.equals(schema)) {
-                ck.add(attr);
+            // to remove the superkeys, or attributes that are redundant
+            if (check_sk.get(combos.indexOf(attr))) {
+                String closure = sortString(getClosureSet(attr, dict_fds));
+                // System.out.println("CLosure of " + attr + ": " + closure);
+                if (closure.equals(schema)) {
+                    ck.add(attr);
+
+                    // if any attribute in the comibantion list contains the attr candidate key,
+                    // than its corresponding position in the check_sk will be marked false
+                    for (String s : combos) {
+                        if (searchIn(attr, s) && !s.equals(attr)) {
+                            check_sk.set(combos.indexOf(s), false);
+                        }
+                    }
+                }
             }
         }
 
@@ -94,7 +114,9 @@ public class Main {
 
     public static void allCombos(String schema, int indx, ArrayList<String> res, String temp) {
         if (indx == schema.length()) {
-            res.add(temp);
+            if (!temp.equals(schema)) {
+                res.add(temp);
+            }
             return;
         }
         allCombos(schema, indx + 1, res, temp);
