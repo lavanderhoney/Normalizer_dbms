@@ -1,26 +1,30 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Arrays;
-import java.util.Collections;
 
 public class Main {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        int n = 5;
+        int n = 2;
+        // System.out.println("Enter the number of fds: ");
+        // int n = sc.nextInt();
+        // sc.nextLine();
 
+        /*
+         * dict_fds is a map or dictionary that holds the functional dependencies.
+         * The keys are determinant attributes, values are dependant attributes
+         */
         HashMap<String, String> dict_fds = new HashMap<>();
         String rel_schema = "";
         System.out.println("Enter the relation schema as a string:");
-
         rel_schema = sc.nextLine();
 
         for (int i = 0; i < n; i++) {
             String s = sc.nextLine();
-            String[] fds = s.split(" "); // 0: determinant 1: dependent
+            String[] fds = s.split(" "); // 0: determinant 1: dependent in fds string array
             String temp;
             if (dict_fds.containsKey(fds[0])) {
                 temp = dict_fds.get(fds[0]);
@@ -35,6 +39,7 @@ public class Main {
         System.out.println("Func dependencies: " + dict_fds);
         System.out.println("Candidate keys: " + candidate_keys);
         System.out.println("Relation is 2NF? " + check2NF(rel_schema, candidate_keys, dict_fds));
+        convert2NF(rel_schema, candidate_keys, dict_fds);
         sc.close();
     }
 
@@ -97,6 +102,7 @@ public class Main {
         /*
          * function to search whether a target string is inside the findIn string.
          * For e.g: returns true for target="AC", findIn="ABC"
+         * It is sort of a subset finder. Checks whether target is subset of findIn
          */
         boolean main_flag = true;
         boolean sub_flag = false;
@@ -134,10 +140,17 @@ public class Main {
     }
 
     public static boolean check2NF(String schema, ArrayList<String> ckeys, HashMap<String, String> fds) {
+        /*
+         * This function checks whether this relation is in 2NF or not.
+         * schema: The relation schema String, provided by the user
+         * ckeys: List of the candidate keys
+         * fds: functional dependencies
+         */
+
         Set<String> dets = fds.keySet();
         for (String key : ckeys) {
             for (String attr : dets) {
-                if (searchIn(attr, key)) {
+                if (searchIn(attr, key) && !attr.equals(key)) {
                     return false;
                 }
             }
@@ -145,4 +158,27 @@ public class Main {
         return true;
     }
 
+    public static ArrayList<String> convert2NF(String schema, ArrayList<String> ckeys,
+            HashMap<String, String> fds) {
+        /*
+         * This function splits the relation to 2NF
+         * schema: The relation schema String, provided by the user
+         * ckeys: List of the candidate keys
+         * fds: functional dependencies
+         */
+
+        ArrayList<String> rel_2nf = new ArrayList<String>();
+        Set<String> dets = fds.keySet();
+        for (String key : ckeys) {
+            for (String attr : dets) {
+                if (searchIn(attr, key) && !attr.equals(key)) {
+                    // a pd is found.
+                    String temp = getClosureSet(attr, fds);
+                    rel_2nf.add(temp);
+                }
+            }
+        }
+        System.out.println("2NF split: " + rel_2nf);
+        return rel_2nf;
+    }
 }
