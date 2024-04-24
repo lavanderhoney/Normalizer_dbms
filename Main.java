@@ -222,4 +222,44 @@ public class Main {
 
         return aflag || bflag;
     }
+
+    public static ArrayList<String> convert3NF(String schema, ArrayList<String> ckeys,
+            HashMap<String, String> fds) {
+        ArrayList<String> rel_3nf = new ArrayList<>();
+
+        return rel_3nf;
+    }
+
+    public static HashMap<String, String> getCanonicalCover(String schema, HashMap<String, String> dict_fds) {
+        HashMap<String, String> minimal = dict_fds;
+
+        // split the fds
+        Set<String> lhs_ = minimal.keySet();
+        for (String attr : lhs_) {
+            if (attr.length() > 1) {
+                String rhs = minimal.get(attr);
+                minimal.remove(attr, rhs);
+                String[] splitted_attributes = attr.split("");
+                for (String s : splitted_attributes) {
+                    minimal.put(s, rhs);
+                }
+            }
+        }
+
+        // Finding redundant FDs
+        Set<String> lhs = minimal.keySet();
+        for (String attr : lhs) {
+            String closure_avec = getClosureSet(attr, minimal);
+            String rhs = minimal.get(attr);
+            minimal.remove(attr, rhs);
+            String clousure_sans = getClosureSet(attr, minimal);
+
+            // If equal, then this fd of particular attr is required so add it back to
+            // dict_fds. Else, this fd is redundant and don't add it
+            if (!closure_avec.equals(clousure_sans)) {
+                minimal.put(attr, rhs);
+            }
+        }
+        return minimal;
+    }
 }
