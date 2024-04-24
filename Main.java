@@ -236,12 +236,13 @@ public class Main {
         // split the fds
         Set<String> lhs_ = minimal.keySet();
         for (String attr : lhs_) {
-            if (attr.length() > 1) {
-                String rhs = minimal.get(attr);
-                minimal.remove(attr, rhs);
-                String[] splitted_attributes = attr.split("");
+            String dpndt = minimal.get(attr);
+            if (dpndt.length() > 1) {
+                // String rhs = minimal.get(attr);
+                minimal.remove(attr, dpndt);
+                String[] splitted_attributes = dpndt.split("");
                 for (String s : splitted_attributes) {
-                    minimal.put(s, rhs);
+                    minimal.put(attr, s);
                 }
             }
         }
