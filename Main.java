@@ -8,7 +8,8 @@ public class Main {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        int n = 2;
+        // int n = 2;
+        int n = 3;
         // System.out.println("Enter the number of fds: ");
         // int n = sc.nextInt();
         // sc.nextLine();
@@ -36,10 +37,13 @@ public class Main {
         }
         // printLinks(links);
         ArrayList<String> candidate_keys = getCandidateKeys(dict_fds, rel_schema);
+        ArrayList<String> super_keys = getSuperKeys(candidate_keys, rel_schema);
         System.out.println("Func dependencies: " + dict_fds);
         System.out.println("Candidate keys: " + candidate_keys);
         System.out.println("Relation is 2NF? " + check2NF(rel_schema, candidate_keys, dict_fds));
         convert2NF(rel_schema, candidate_keys, dict_fds);
+        System.out.println("Super keys: " + super_keys);
+        System.out.println("Relation is 3NF? " + check3NF(rel_schema, candidate_keys, super_keys, dict_fds));
         sc.close();
     }
 
@@ -180,5 +184,42 @@ public class Main {
         }
         System.out.println("2NF split: " + rel_2nf);
         return rel_2nf;
+    }
+
+    public static ArrayList<String> getSuperKeys(ArrayList<String> ckeys, String rel_schema) {
+        ArrayList<String> skey = new ArrayList<>();
+        ArrayList<String> combos = new ArrayList<>();
+        allCombos(rel_schema, 0, combos, "");
+        for (String attribute : combos) {
+            for (String key : ckeys) {
+                if (searchIn(key, attribute)) {
+                    skey.add(attribute);
+                }
+            }
+
+        }
+        return skey;
+    }
+
+    public static boolean check3NF(String schema, ArrayList<String> ckeys, ArrayList<String> skeys,
+            HashMap<String, String> fds) {
+        Set<String> determinants = fds.keySet();
+        boolean aflag = true;
+        for (String alpha : determinants) {
+            if (!skeys.contains(alpha)) {
+                aflag = false;
+            }
+        }
+
+        boolean bflag = false;
+        for (String alpha : determinants) {
+            for (String ckey : ckeys) {
+                if (searchIn(fds.get(alpha), ckey)) {
+                    bflag = true;
+                }
+            }
+        }
+
+        return aflag || bflag;
     }
 }
