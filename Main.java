@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Arrays;
@@ -100,6 +101,37 @@ public class Main {
             }
         }
         return finds.toString();
+    }
+
+    // method overloading for canonical cover, changed data struct of the 2nd
+    // parameter
+    public static String getClosureSet(String s, ArrayList<ArrayList<String>> dict_fds) {
+        StringBuilder finds = new StringBuilder();
+        finds.append(s);
+        ArrayList<String> determinants = new ArrayList<>();
+
+        for (ArrayList<String> fd : dict_fds) {
+            determinants.add(fd.get(0));
+        }
+        for (int i = 0; i < determinants.size(); i++) {
+            String attr = determinants.get(i);
+            if (searchIn(attr, finds.toString())
+                    && !searchIn(findDependentInArrayList(dict_fds, attr), finds.toString())) {
+                finds.append(findDependentInArrayList(dict_fds, attr));
+                determinants.remove(attr);
+                i = -1;
+            }
+        }
+        return finds.toString();
+    }
+
+    public static String findDependentInArrayList(ArrayList<ArrayList<String>> dict_fds_2d, String target_key) {
+        for (ArrayList<String> fd : dict_fds_2d) {
+            if (fd.get(0).equals(target_key)) {
+                return fd.get(1);
+            }
+        }
+        return " ";
     }
 
     public static boolean searchIn(String target, String findIn) {
@@ -232,7 +264,15 @@ public class Main {
 
     public static HashMap<String, String> getCanonicalCover(String schema, HashMap<String, String> dict_fds) {
         HashMap<String, String> minimal = dict_fds;
-
+        // Convert dict_fds HashMap into a 2D ArrayList, necause HashMap doesnt allow
+        // duplicate keys
+        ArrayList<ArrayList<String>> dict_fds_2d = new ArrayList<>();
+        for (Map.Entry<String, String> entry : minimal.entrySet()) {
+            ArrayList<String> entryList = new ArrayList<>();
+            entryList.add(entry.getKey());
+            entryList.add(entry.getValue());
+            dict_fds_2d.add(entryList);
+        }
         // split the fds
         Set<String> lhs_ = minimal.keySet();
         for (String attr : lhs_) {
@@ -240,9 +280,20 @@ public class Main {
             if (dpndt.length() > 1) {
                 // String rhs = minimal.get(attr);
                 minimal.remove(attr, dpndt);
+
+                // To remove this composite FD from the list
+                ArrayList<String> rem = new ArrayList<>();
+                rem.add(attr);
+                rem.add(dpndt);
+                dict_fds_2d.remove(rem);
+
+                // Add the decomposed FD
                 String[] splitted_attributes = dpndt.split("");
                 for (String s : splitted_attributes) {
-                    minimal.put(attr, s);
+                    ArrayList<String> tempfd = new ArrayList<>();
+                    tempfd.add(attr);
+                    tempfd.add(s);
+                    dict_fds_2d.add(tempfd);
                 }
             }
         }
