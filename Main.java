@@ -94,13 +94,30 @@ public class Main {
         determinants.addAll(dets);
         for (int i = 0; i < determinants.size(); i++) {
             String attr = determinants.get(i);
+            if (sortString(finds.toString()).equals(schema)) {
+                return finds.toString();
+            }
             if (searchIn(attr, finds.toString()) && !searchIn(dict_fds.get(attr), finds.toString())) {
                 finds.append(dict_fds.get(attr));
+                finds = refineFinds(finds.toString());
                 determinants.remove(attr);
                 i = -1;
             }
         }
         return finds.toString();
+    }
+
+    public static StringBuilder refineFinds(String finds) {
+        HashSet<String> set = new HashSet<>();
+        for (String s : finds.split("")) {
+            set.add(s);
+        }
+        StringBuilder temp = new StringBuilder();
+        for (String s : set) {
+            temp.append(s);
+        }
+        StringBuilder temp_ = new StringBuilder(sortString(temp.toString()));
+        return temp_;
     }
 
     // method overloading for canonical cover, changed data struct of the 2nd
