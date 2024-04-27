@@ -203,7 +203,9 @@ public class Main {
         Set<String> dets = fds.keySet();
         for (String key : ckeys) {
             for (String attr : dets) {
-                if (searchIn(attr, key) && !attr.equals(key)) {
+                // check: a proper subset of the candidate key determines a non-prime
+                // attribute. SO have to add check on the dependent as well, eg: what if p->p ?
+                if (searchIn(attr, key) && !attr.equals(key) && !searchIn(fds.get(attr), key)) {
                     return false;
                 }
             }
