@@ -213,7 +213,7 @@ public class Main {
         return true;
     }
 
-    public static ArrayList<String> convert2NF(String schema, ArrayList<String> ckeys,
+    public static Map<String, HashMap<String, String>> convert2NF(String schema, ArrayList<String> ckeys,
             HashMap<String, String> fds) {
         /*
          * This function splits the relation to 2NF
@@ -221,56 +221,41 @@ public class Main {
          * ckeys: List of the candidate keys
          * fds: functional dependencies
          */
-
-        ArrayList<String> rel_2nf = new ArrayList<String>();
         Set<String> dets = fds.keySet();
-        ArrayList<String> rhs = new ArrayList<>();
+
+        Map<String, HashMap<String, String>> rel_2nf = new HashMap<String, HashMap<String, String>>();
+
         for (String attr : dets) {
         for (String key : ckeys) {
-                    // a pd is found.
                 if (searchIn(attr, key) && !attr.equals(key) && !searchIn(fds.get(attr), key)) {
+                    // a PD is found.
+                    HashMap<String, String> fd_2nf = new HashMap<>();
                     String temp_ = attr;
                     temp_ += fds.get(attr);
-                    rhs.add(fds.get(attr));
-                    ArrayList<ArrayList<String>> temp = new ArrayList<>();
-                    ArrayList<String> temp_fd = new ArrayList<>();
-                    ArrayList<String> temp_r = new ArrayList<>();
-
+                    fd_2nf.put(attr, fds.get(attr));
                     // adding Y+
                     String depndt_closure = getClosureSet(schema, fds.get(attr), fds);
-                    ArrayList<String> depndt_fd = getClosureSetFD(schema, fds.get(attr), fds);
-                    System.out.println("FDs of " + depndt_closure + ": " + depndt_fd);
+                    fd_2nf.putAll(getClosureSetFD(schema, fds.get(attr), fds));
+
+                    System.out.println("FDs with Y+ as: " + depndt_closure + " is: " + fd_2nf);
                     temp_ += depndt_closure;
                     temp_ = refineFinds(temp_).toString(); // remove duplicating attributes
-                    temp_r.add(temp_);
-                    temp_fd.add(attr);
-                    temp_fd.add(fds.get(attr));
 
-                    temp.add(temp_r);
-                    temp.add(temp_fd);
-                    rel_2nf.add(temp);
+                    rel_2nf.put(temp_, fd_2nf);
 
                     break;
                     // rel_2nf_fd.put(attr, fds.get(attr));
                 }
             }
         }
-        /*
-         * Removing the rhs attributes of PDs from the main relation, and creating the
-         * new decomposed relation
-         */
-        String[] rest = schema.split("");
-        ArrayList<String> temp_r = new ArrayList<>();
-        ArrayList<String> temp_fd = new ArrayList<>();
-        ArrayList<ArrayList<String>> temp = new ArrayList<>();
-        for (String s : rest) {
-            if (!rhs.contains(s)) {
-                temp_r.add(s);
-            }
+
+        // combine all CKs
+        String relckey = "";
+        for (String ckey : ckeys) {
+            relckey += ckey;
         }
-        temp.add(temp_r);
-        temp.add(temp_fd);
-        rel_2nf.add(temp);
+
+        rel_2nf.put(relckey, new HashMap<>());
         System.out.println("2NF split: " + rel_2nf);
         return rel_2nf;
     }
