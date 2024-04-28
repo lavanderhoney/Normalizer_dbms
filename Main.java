@@ -224,15 +224,53 @@ public class Main {
 
         ArrayList<String> rel_2nf = new ArrayList<String>();
         Set<String> dets = fds.keySet();
+        ArrayList<String> rhs = new ArrayList<>();
+        for (String attr : dets) {
         for (String key : ckeys) {
-            for (String attr : dets) {
-                if (searchIn(attr, key) && !attr.equals(key)) {
                     // a pd is found.
-                    String temp = getClosureSet(attr, fds);
+                if (searchIn(attr, key) && !attr.equals(key) && !searchIn(fds.get(attr), key)) {
+                    String temp_ = attr;
+                    temp_ += fds.get(attr);
+                    rhs.add(fds.get(attr));
+                    ArrayList<ArrayList<String>> temp = new ArrayList<>();
+                    ArrayList<String> temp_fd = new ArrayList<>();
+                    ArrayList<String> temp_r = new ArrayList<>();
+
+                    // adding Y+
+                    String depndt_closure = getClosureSet(schema, fds.get(attr), fds);
+                    ArrayList<String> depndt_fd = getClosureSetFD(schema, fds.get(attr), fds);
+                    System.out.println("FDs of " + depndt_closure + ": " + depndt_fd);
+                    temp_ += depndt_closure;
+                    temp_ = refineFinds(temp_).toString(); // remove duplicating attributes
+                    temp_r.add(temp_);
+                    temp_fd.add(attr);
+                    temp_fd.add(fds.get(attr));
+
+                    temp.add(temp_r);
+                    temp.add(temp_fd);
                     rel_2nf.add(temp);
+
+                    break;
+                    // rel_2nf_fd.put(attr, fds.get(attr));
                 }
             }
         }
+        /*
+         * Removing the rhs attributes of PDs from the main relation, and creating the
+         * new decomposed relation
+         */
+        String[] rest = schema.split("");
+        ArrayList<String> temp_r = new ArrayList<>();
+        ArrayList<String> temp_fd = new ArrayList<>();
+        ArrayList<ArrayList<String>> temp = new ArrayList<>();
+        for (String s : rest) {
+            if (!rhs.contains(s)) {
+                temp_r.add(s);
+            }
+        }
+        temp.add(temp_r);
+        temp.add(temp_fd);
+        rel_2nf.add(temp);
         System.out.println("2NF split: " + rel_2nf);
         return rel_2nf;
     }
