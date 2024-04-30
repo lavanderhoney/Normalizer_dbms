@@ -1,8 +1,11 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Arrays;
 
 public class Main {
@@ -10,10 +13,10 @@ public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         // int n = 2;
-        int n = 3;
-        // System.out.println("Enter the number of fds: ");
-        // int n = sc.nextInt();
-        // sc.nextLine();
+        // int n = 5;
+        System.out.println("Enter the number of fds: ");
+        int n = sc.nextInt();
+        sc.nextLine();
 
         /*
          * dict_fds is a map or dictionary that holds the functional dependencies.
@@ -36,16 +39,44 @@ public class Main {
                 dict_fds.put(fds[0], fds[1]);
             }
         }
-        // printLinks(links);
+        sc.close();
+
         ArrayList<String> candidate_keys = getCandidateKeys(dict_fds, rel_schema);
         ArrayList<String> super_keys = getSuperKeys(candidate_keys, rel_schema);
+
         System.out.println("Func dependencies: " + dict_fds);
         System.out.println("Candidate keys: " + candidate_keys);
+        System.out.println(" ");
+        // System.out.println("Super keys: " + super_keys);
+        System.out.println("Canonical cover: " + getCanonicalCover(rel_schema, dict_fds));
+        System.out.println(" ");
+
         System.out.println("Relation is 2NF? " + check2NF(rel_schema, candidate_keys, dict_fds));
-        convert2NF(rel_schema, candidate_keys, dict_fds);
-        System.out.println("Super keys: " + super_keys);
+        if (!check2NF(rel_schema, super_keys, dict_fds)) {
+            System.out.println("2NF split: ");
+            printRelations(convert2NF(rel_schema, candidate_keys, dict_fds));
+        }
+
         System.out.println("Relation is 3NF? " + check3NF(rel_schema, candidate_keys, super_keys, dict_fds));
-        sc.close();
+        if (!check3NF(rel_schema, candidate_keys, super_keys, dict_fds)) {
+            System.out.println("3NF split: ");
+            printRelations(convert3NF(rel_schema, candidate_keys, dict_fds));
+        }
+
+        System.out.println("Relation is BCNF? " + checkBCNF(dict_fds, super_keys));
+        if (!checkBCNF(dict_fds, super_keys)) {
+            System.out.println("BCNF split: ");
+            printRelations(convertBCNF(rel_schema, dict_fds, super_keys));
+        }
+    }
+
+    public static void printRelations(Map<String, HashMap<String, String>> rel) {
+        int i = 1;
+        for (Map.Entry<String, HashMap<String, String>> entry : rel.entrySet()) {
+            System.out.println("R" + i + "(" + entry.getKey() + ") " + "FD: " + entry.getValue());
+            i++;
+        }
+        System.out.println(" ");
     }
 
     // --> put all the ck stuff in a separate file
@@ -61,11 +92,11 @@ public class Main {
         for (int i = 0; i < combos.size(); i++) {
             check_sk.add(true);
         }
-
+        // System.out.println("combos: " + combos);
         for (String attr : combos) {
             // to remove the superkeys, or attributes that are redundant
-            if (check_sk.get(combos.indexOf(attr))) {
-                String closure = sortString(getClosureSet(attr, dict_fds));
+            if (attr != "" && check_sk.get(combos.indexOf(attr))) {
+                String closure = sortString(getClosureSet(schema, attr, dict_fds));
                 // System.out.println("CLosure of " + attr + ": " + closure);
                 if (closure.equals(schema)) {
                     ck.add(attr);
@@ -86,7 +117,7 @@ public class Main {
         return ck;
     }
 
-    public static String getClosureSet(String s, HashMap<String, String> dict_fds) {
+    public static String getClosureSet(String schema, String s, HashMap<String, String> dict_fds) {
         StringBuilder finds = new StringBuilder();
         finds.append(s);
         Set<String> dets = dict_fds.keySet();
@@ -107,6 +138,37 @@ public class Main {
         return finds.toString();
     }
 
+    // safer way is to overload getClosureSet again for 2nf split
+    public static HashMap<String, String> getClosureSetFD(String schema, String s,
+            HashMap<String, String> dict_fds) {
+        StringBuilder finds = new StringBuilder();
+        finds.append(s);
+        Set<String> dets = dict_fds.keySet();
+        ArrayList<String> determinants = new ArrayList<>();
+        determinants.addAll(dets);
+        HashMap<String, String> temp_fd = new HashMap<>();
+        for (int i = 0; i < determinants.size(); i++) {
+            String attr = determinants.get(i);
+            if (sortString(finds.toString()).equals(schema)) {
+                // temp_closureset.add(finds.toString());
+                break;
+            }
+            if (searchIn(attr, finds.toString()) && !searchIn(dict_fds.get(attr), finds.toString())) {
+                finds.append(dict_fds.get(attr));
+                finds = refineFinds(finds.toString());
+                determinants.remove(attr);
+
+                temp_fd.put(attr, dict_fds.get(attr));
+                i = -1;
+            }
+        }
+
+        // temp_closureset.add(finds.toString());
+        // ans.add(temp_closureset);
+
+        return temp_fd;
+    }
+
     public static StringBuilder refineFinds(String finds) {
         HashSet<String> set = new HashSet<>();
         for (String s : finds.split("")) {
@@ -120,23 +182,21 @@ public class Main {
         return temp_;
     }
 
-    // method overloading for canonical cover, changed data struct of the 2nd
-    // parameter
-    public static String getClosureSet(String s, ArrayList<ArrayList<String>> dict_fds) {
+    /*
+     * method overloading for canonical cover, changed data struct of the 2nd
+     * parameter
+     */
+    public static String getClosureSet(String schema, String s, ArrayList<ArrayList<String>> dict_fds) {
         StringBuilder finds = new StringBuilder();
         finds.append(s);
-        ArrayList<String> determinants = new ArrayList<>();
-
         for (ArrayList<String> fd : dict_fds) {
-            determinants.add(fd.get(0));
-        }
-        for (int i = 0; i < determinants.size(); i++) {
-            String attr = determinants.get(i);
-            if (searchIn(attr, finds.toString())
-                    && !searchIn(findDependentInArrayList(dict_fds, attr), finds.toString())) {
-                finds.append(findDependentInArrayList(dict_fds, attr));
-                determinants.remove(attr);
-                i = -1;
+            if (fd.get(0).length() <= finds.length()) {
+                if (sortString(finds.toString()).equals(schema)) {
+                    return finds.toString();
+                }
+                if (searchIn(fd.get(0), finds.toString()) && !searchIn(fd.get(1), finds.toString())) {
+                    finds.append(fd.get(1));
+                }
             }
         }
         return finds.toString();
@@ -236,7 +296,7 @@ public class Main {
         ArrayList<String> split_lhs = new ArrayList<>();
         String all_attributes = "";
         for (String attr : dets) {
-        for (String key : ckeys) {
+            for (String key : ckeys) {
                 if (searchIn(attr, key) && !attr.equals(key) && !searchIn(fds.get(attr), key)) {
                     // a PD is found.
                     HashMap<String, String> fd_2nf = new HashMap<>();
@@ -325,7 +385,7 @@ public class Main {
         return aflag || bflag;
     }
 
-    public static ArrayList<String> convert3NF(String schema, ArrayList<String> ckeys,
+    public static Map<String, HashMap<String, String>> convert3NF(String schema, ArrayList<String> ckeys,
             HashMap<String, String> fds) {
         Map<String, HashMap<String, String>> rel_3nf = new HashMap<>();
         ArrayList<ArrayList<String>> minimal = getCanonicalCover(schema, fds);
@@ -414,14 +474,20 @@ public class Main {
                 }
             }
         }
+        // System.out.println("decomposed fds: " + dict_fds_2d);
 
         // Finding redundant FDs
-        Set<String> lhs = minimal.keySet();
-        for (String attr : lhs) {
-            String closure_avec = getClosureSet(attr, minimal);
-            String rhs = minimal.get(attr);
-            minimal.remove(attr, rhs);
-            String clousure_sans = getClosureSet(attr, minimal);
+        ArrayList<ArrayList<String>> dict_fds_2d_copy = new ArrayList<ArrayList<String>>();
+        dict_fds_2d_copy.addAll(dict_fds_2d);
+        // System.out.println("copy: " + dict_fds_2d_copy);
+        for (ArrayList<String> fd : dict_fds_2d) {
+            String closure_avec = sortString(getClosureSet(schema, fd.get(0), dict_fds_2d_copy));
+            // System.out.println("ca of:" + fd.get(0) + " " + closure_avec);
+            String rhs = fd.get(1);
+            String lhs = fd.get(0);
+            dict_fds_2d_copy.remove(fd);
+            String closure_sans = sortString(getClosureSet(schema, lhs, dict_fds_2d_copy));
+            // System.out.println("cs of:" + fd.get(0) + " " + closure_sans);
 
             /*
              * If equal, then this fd of particular attr is required so add it back to
@@ -446,6 +512,35 @@ public class Main {
                 return false;
             }
         }
-        return minimal;
+        return true;
+    }
+
+    public static Map<String, HashMap<String, String>> convertBCNF(String schema, HashMap<String, String> fds,
+            ArrayList<String> skeys) {
+        Map<String, HashMap<String, String>> rel_bcnf = new HashMap<>();
+        List<String> depndts = new ArrayList<>();
+        for (Map.Entry<String, String> entry : fds.entrySet()) {
+            String reln = "";
+            HashMap<String, String> temp_fd = new HashMap<>();
+            if (!skeys.contains(entry.getKey())) {
+                // this FD violates BCNF
+                reln = entry.getKey();
+                reln += entry.getValue();
+                depndts.add(entry.getValue());
+                temp_fd.put(entry.getKey(), entry.getValue());
+                rel_bcnf.put(reln, temp_fd);
+            }
+        }
+
+        // Creating the joining relation
+        String reln = "";
+        for (String attr : schema.split("")) {
+            if (!depndts.contains(attr)) {
+                reln += attr;
+            }
+        }
+        rel_bcnf.put(reln, new HashMap<>());
+
+        return rel_bcnf;
     }
 }
