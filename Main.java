@@ -224,23 +224,25 @@ public class Main {
         Set<String> dets = fds.keySet();
 
         Map<String, HashMap<String, String>> rel_2nf = new HashMap<String, HashMap<String, String>>();
-
+        ArrayList<String> split_lhs = new ArrayList<>();
+        String all_attributes = "";
         for (String attr : dets) {
         for (String key : ckeys) {
                 if (searchIn(attr, key) && !attr.equals(key) && !searchIn(fds.get(attr), key)) {
                     // a PD is found.
                     HashMap<String, String> fd_2nf = new HashMap<>();
                     String temp_ = attr;
+                    split_lhs.add(attr);
                     temp_ += fds.get(attr);
                     fd_2nf.put(attr, fds.get(attr));
                     // adding Y+
                     String depndt_closure = getClosureSet(schema, fds.get(attr), fds);
                     fd_2nf.putAll(getClosureSetFD(schema, fds.get(attr), fds));
 
-                    System.out.println("FDs with Y+ as: " + depndt_closure + " is: " + fd_2nf);
+                    // System.out.println("FDs with Y+ as: " + depndt_closure + " is: " + fd_2nf);
                     temp_ += depndt_closure;
                     temp_ = refineFinds(temp_).toString(); // remove duplicating attributes
-
+                    all_attributes += temp_;
                     rel_2nf.put(temp_, fd_2nf);
 
                     break;
@@ -249,14 +251,31 @@ public class Main {
             }
         }
 
-        // combine all CKs
-        String relckey = "";
-        for (String ckey : ckeys) {
-            relckey += ckey;
+        // Creating the joining relation
+        all_attributes = refineFinds(all_attributes).toString();
+        HashSet<String> tempSet = new HashSet<>();
+        for (String s : split_lhs) {
+            for (String ss : s.split("")) {
+                tempSet.add(ss);
+            }
+        }
+        for (String s : schema.split("")) {
+            if (!all_attributes.contains(s)) {
+                tempSet.add(s);
+            }
+        }
+        String join_reln = "";
+        for (String s : tempSet) {
+            join_reln += s;
         }
 
-        rel_2nf.put(relckey, new HashMap<>());
-        System.out.println("2NF split: " + rel_2nf);
+        // combine all CKs
+        // String relckey = "";
+        // for (String ckey : ckeys) {
+        // relckey += ckey;
+        // }
+
+        rel_2nf.put(join_reln, new HashMap<>());
         return rel_2nf;
     }
 
