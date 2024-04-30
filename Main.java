@@ -151,6 +151,15 @@ public class Main {
         return " ";
     }
 
+    public static ArrayList<String> findFDInArrayList(ArrayList<ArrayList<String>> dict_fds_2d, String target_key) {
+        for (ArrayList<String> fd : dict_fds_2d) {
+            if (fd.get(0).equals(target_key)) {
+                return fd;
+            }
+        }
+        return new ArrayList<String>();
+    }
+
     public static boolean searchIn(String target, String findIn) {
         /*
          * function to search whether a target string is inside the findIn string.
@@ -318,22 +327,69 @@ public class Main {
 
     public static ArrayList<String> convert3NF(String schema, ArrayList<String> ckeys,
             HashMap<String, String> fds) {
-        ArrayList<String> rel_3nf = new ArrayList<>();
+        Map<String, HashMap<String, String>> rel_3nf = new HashMap<>();
+        ArrayList<ArrayList<String>> minimal = getCanonicalCover(schema, fds);
+        List<String> depndts = new ArrayList<>();
 
+        /*
+         * Aggregate the decomposed FDs from the canonical cover and viola, that will be
+         * the 3NF form, as per synthesis algorithm
+         */
+
+        for (int i = 0; i < minimal.size(); i++) {
+            HashMap<String, String> temp_fd = new HashMap<>();
+            String rln = "";
+            if ((i + 1 < minimal.size()) && minimal.get(i).get(0).equals(minimal.get(i + 1).get(0))) {
+                String dpndt = minimal.get(i).get(1);
+                dpndt += minimal.get(i + 1).get(1);
+                temp_fd.put(minimal.get(i).get(0), dpndt);
+                rln = minimal.get(i).get(0);
+                rln += dpndt;
+                depndts.add(dpndt);
+                i++;
+            } else {
+                temp_fd.put(minimal.get(i).get(0), minimal.get(i).get(1));
+                rln = minimal.get(i).get(0);
+                rln += minimal.get(i).get(1);
+                depndts.add(minimal.get(i).get(1));
+            }
+            rel_3nf.put(rln, temp_fd);
+        }
+
+        // Create joining relation
+        String reln = "";
+        for (String attr : schema.split("")) {
+            if (!depndts.contains(attr)) {
+                reln += attr;
+            }
+        }
+        rel_3nf.put(reln, new HashMap<>());
         return rel_3nf;
     }
 
-    public static HashMap<String, String> getCanonicalCover(String schema, HashMap<String, String> dict_fds) {
-        HashMap<String, String> minimal = dict_fds;
-        // Convert dict_fds HashMap into a 2D ArrayList, necause HashMap doesnt allow
+    public static HashMap<String, String> ListFDtoHashMapFD(ArrayList<ArrayList<String>> dict_fds_2d) {
+        HashMap<String, String> dict_fds = new HashMap<>();
+        // iterate over dict_fds and combine the decomposed fds into single, like d-a,
+        // d-b to d-ab
+        for (ArrayList<String> fd : dict_fds_2d) {
+            dict_fds.put(fd.get(0), fd.get(1));
+        }
+        return dict_fds;
+    }
+
+    public static ArrayList<ArrayList<String>> getCanonicalCover(String schema, HashMap<String, String> dict_fds) {
+        ConcurrentHashMap<String, String> minimal = new ConcurrentHashMap<>(dict_fds);
+
+        // Convert dict_fds HashMap into a 2D ArrayList, because HashMap doesnt allow
         // duplicate keys
-        ArrayList<ArrayList<String>> dict_fds_2d = new ArrayList<>();
+        ArrayList<ArrayList<String>> dict_fds_2d = new ArrayList<ArrayList<String>>();
         for (Map.Entry<String, String> entry : minimal.entrySet()) {
             ArrayList<String> entryList = new ArrayList<>();
             entryList.add(entry.getKey());
             entryList.add(entry.getValue());
             dict_fds_2d.add(entryList);
         }
+
         // split the fds
         Set<String> lhs_ = minimal.keySet();
         for (String attr : lhs_) {
@@ -367,10 +423,27 @@ public class Main {
             minimal.remove(attr, rhs);
             String clousure_sans = getClosureSet(attr, minimal);
 
-            // If equal, then this fd of particular attr is required so add it back to
-            // dict_fds. Else, this fd is redundant and don't add it
-            if (!closure_avec.equals(clousure_sans)) {
-                minimal.put(attr, rhs);
+            /*
+             * If equal, then this fd of particular attr is required so add it back to
+             * dict_fds. Else, this fd is redundant and don't add it
+             */
+            if (!closure_avec.equals(closure_sans)) {
+                ArrayList<String> tempfd = new ArrayList<>();
+                tempfd.add(lhs);
+                tempfd.add(rhs);
+                // System.out.println("tempfd: " + tempfd);
+                dict_fds_2d_copy.add(tempfd);
+            }
+        }
+        // System.out.println("dict copy, canonical cover: " + dict_fds_2d_copy);
+        ListFDtoHashMapFD(dict_fds_2d_copy);
+        return dict_fds_2d_copy;
+    }
+
+    public static boolean checkBCNF(HashMap<String, String> fds, ArrayList<String> skeys) {
+        for (Map.Entry<String, String> entry : fds.entrySet()) {
+            if (!skeys.contains(entry.getKey())) {
+                return false;
             }
         }
         return minimal;
