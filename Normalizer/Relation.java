@@ -1,10 +1,8 @@
 package Normalizer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import static Normalizer.Helpers.*;
 
@@ -30,12 +28,12 @@ public class Relation {
     }
 
     public Relation(String rel, HashMap<String, String> fd) {
-        relString = rel;
-        functional_dependencies = fd;
+        this.relString = rel;
+        this.functional_dependencies = fd;
     }
 
     public void getCandidateKeys() {
-        candidate_keys = calc_CK(functional_dependencies, relString);
+        this.candidate_keys = calc_CK(functional_dependencies, relString);
     }
 
     public void getSuperKeys() {
@@ -43,11 +41,19 @@ public class Relation {
     }
 
     public void getCanonicalCover() {
-        canonical_cover = calc_CC(relString, functional_dependencies);
+        this.canonical_cover = calc_CC(relString, functional_dependencies);
     }
 
     public void check_for2NF() {
-        is2NF = check2NF(relString, candidate_keys, functional_dependencies);
+        this.is2NF = check2NF(relString, candidate_keys, functional_dependencies);
+    }
+
+    public void check_for3NF() {
+        this.is3NF = check3NF(relString, candidate_keys, super_keys, functional_dependencies);
+    }
+
+    public void check_forBCNF() {
+        this.isBCNF = checkBCNF(functional_dependencies, super_keys);
     }
 
     public void convert_2NF() {
@@ -55,7 +61,23 @@ public class Relation {
             // throw custom error
             return;
         }
-        reln_2NF = 
+        this.reln_2NF = convert2NF(relString, candidate_keys, functional_dependencies);
+    }
+
+    public void convert_3NF() {
+        if (!is3NF) {
+            // throw custom error
+            return;
+        }
+        this.reln_3NF = convert3NF(relString, candidate_keys, functional_dependencies);
+    }
+
+    public void convert_BCNF() {
+        if (!isBCNF) {
+            // throw custom error
+            return;
+        }
+        this.reln_BCNF = convertBCNF(relString, functional_dependencies, candidate_keys);
     }
 
     private ArrayList<String> calc_CK(HashMap<String, String> dict_fds, String schema) {
@@ -258,5 +280,107 @@ public class Relation {
 
         rel_2nf.put(join_reln, new HashMap<>());
         return rel_2nf;
+    }
+
+    private boolean check3NF(String schema, ArrayList<String> ckeys, ArrayList<String> skeys,
+            HashMap<String, String> fds) {
+        Set<String> determinants = fds.keySet();
+        boolean aflag = true;
+        for (String alpha : determinants) {
+            if (!skeys.contains(alpha)) {
+                aflag = false;
+            }
+        }
+
+        boolean bflag = false;
+        for (String alpha : determinants) {
+            for (String ckey : ckeys) {
+                if (searchIn(fds.get(alpha), ckey)) {
+                    bflag = true;
+                }
+            }
+        }
+
+        return aflag || bflag;
+    }
+
+    private Map<String, HashMap<String, String>> convert3NF(String schema, ArrayList<String> ckeys,
+            HashMap<String, String> fds) {
+        Map<String, HashMap<String, String>> rel_3nf = new HashMap<>();
+        ArrayList<ArrayList<String>> minimal = canonical_cover;
+        List<String> depndts = new ArrayList<>();
+
+        /*
+         * Aggregate the decomposed FDs from the canonical cover and viola, that will be
+         * the 3NF form, as per synthesis algorithm
+         */
+
+        for (int i = 0; i < minimal.size(); i++) {
+            HashMap<String, String> temp_fd = new HashMap<>();
+            String rln = "";
+            if ((i + 1 < minimal.size()) && minimal.get(i).get(0).equals(minimal.get(i + 1).get(0))) {
+                String dpndt = minimal.get(i).get(1);
+                dpndt += minimal.get(i + 1).get(1);
+                temp_fd.put(minimal.get(i).get(0), dpndt);
+                rln = minimal.get(i).get(0);
+                rln += dpndt;
+                depndts.add(dpndt);
+                i++;
+            } else {
+                temp_fd.put(minimal.get(i).get(0), minimal.get(i).get(1));
+                rln = minimal.get(i).get(0);
+                rln += minimal.get(i).get(1);
+                depndts.add(minimal.get(i).get(1));
+            }
+            rel_3nf.put(rln, temp_fd);
+        }
+
+        // Create joining relation
+        String reln = "";
+        for (String attr : schema.split("")) {
+            if (!depndts.contains(attr)) {
+                reln += attr;
+            }
+        }
+        rel_3nf.put(reln, new HashMap<>());
+        return rel_3nf;
+    }
+
+    private boolean checkBCNF(HashMap<String, String> fds, ArrayList<String> skeys) {
+        for (Map.Entry<String, String> entry : fds.entrySet()) {
+            if (!skeys.contains(entry.getKey())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Map<String, HashMap<String, String>> convertBCNF(String schema, HashMap<String, String> fds,
+            ArrayList<String> skeys) {
+        Map<String, HashMap<String, String>> rel_bcnf = new HashMap<>();
+        List<String> depndts = new ArrayList<>();
+        for (Map.Entry<String, String> entry : fds.entrySet()) {
+            String reln = "";
+            HashMap<String, String> temp_fd = new HashMap<>();
+            if (!skeys.contains(entry.getKey())) {
+                // this FD violates BCNF
+                reln = entry.getKey();
+                reln += entry.getValue();
+                depndts.add(entry.getValue());
+                temp_fd.put(entry.getKey(), entry.getValue());
+                rel_bcnf.put(reln, temp_fd);
+            }
+        }
+
+        // Creating the joining relation
+        String reln = "";
+        for (String attr : schema.split("")) {
+            if (!depndts.contains(attr)) {
+                reln += attr;
+            }
+        }
+        rel_bcnf.put(reln, new HashMap<>());
+
+        return rel_bcnf;
     }
 }
