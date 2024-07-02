@@ -285,28 +285,6 @@ public class Relation {
         return rel_2nf;
     }
 
-    private boolean check3NF(String schema, ArrayList<String> ckeys, ArrayList<String> skeys,
-            HashMap<String, String> fds) {
-        Set<String> determinants = fds.keySet();
-        boolean aflag = true;
-        for (String alpha : determinants) {
-            if (!skeys.contains(alpha)) {
-                aflag = false;
-            }
-        }
-
-        boolean bflag = false;
-        for (String alpha : determinants) {
-            for (String ckey : ckeys) {
-                if (searchIn(fds.get(alpha), ckey)) {
-                    bflag = true;
-                }
-            }
-        }
-
-        return aflag || bflag;
-    }
-
     private Map<String, HashMap<String, String>> convert3NF(String schema, ArrayList<String> ckeys,
             HashMap<String, String> fds) {
         Map<String, HashMap<String, String>> rel_3nf = new HashMap<>();
@@ -347,15 +325,6 @@ public class Relation {
         }
         rel_3nf.put(reln, new HashMap<>());
         return rel_3nf;
-    }
-
-    private boolean checkBCNF(HashMap<String, String> fds, ArrayList<String> skeys) {
-        for (Map.Entry<String, String> entry : fds.entrySet()) {
-            if (!skeys.contains(entry.getKey())) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private Map<String, HashMap<String, String>> convertBCNF(String schema, HashMap<String, String> fds,
