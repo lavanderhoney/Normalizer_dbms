@@ -1,0 +1,9 @@
+{
+  "java.project.sourcePaths": ["."],
+  "java.project.referencedLibraries": [
+    "c:\\Users\\milap\\Downloads\\commons-collections4-4.5.0-M1-bin\\commons-collections4-4.5.0-M1\\commons-collections4-4.5.0-M1-javadoc.jar",
+    "c:\\Users\\milap\\Downloads\\commons-collections4-4.5.0-M1-bin\\commons-collections4-4.5.0-M1\\commons-collections4-4.5.0-M1.jar",
+    "c:\\Users\\milap\\Downloads\\commons-collections4-4.5.0-M1-bin\\commons-collections4-4.5.0-M1\\commons-collections4-4.5.0-M1-sources.jar",
+    "c:\\Users\\milap\\Downloads\\lombok.jar"
+  ]
+}
