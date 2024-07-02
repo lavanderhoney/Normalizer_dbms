@@ -4,8 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import static Normalizer.Helpers.*;
 
+//Importing the helper functions
+import static Normalizer.Helpers.*;
+@Getter
+@Setter
 public class Relation {
     // atrributes of relation class
     private String relString;
