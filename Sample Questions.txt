@@ -1,0 +1,5 @@
+1. R = "ABCDE"
+fds = A B, B E, C D 
+
+2. R = "WXYZ"
+fds = Z W, Y XZ, XW Y
