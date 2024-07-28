@@ -61,26 +61,18 @@ public class Relation {
     }
 
     public void convert_2NF() {
-        if (is2NF) {
-            // throw custom error
-            return;
-        }
         this.reln_2NF = convert2NF(relString, candidate_keys, functional_dependencies);
     }
 
     public void convert_3NF() {
-        if (is3NF) {
-            // throw custom error
-            return;
+        //In the case if user doesn't invoke the getCaninocalCover method
+        if (this.canonical_cover==null) {
+            getCanonicalCover();
         }
         this.reln_3NF = convert3NF(relString, candidate_keys, functional_dependencies,canonical_cover);
     }
 
     public void convert_BCNF() {
-        if (isBCNF) {
-            // throw custom error
-            return;
-        }
         this.reln_BCNF = convertBCNF(relString, functional_dependencies, candidate_keys);
     }
 }

@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Calculators {
-    
+
     public static ArrayList<String> calc_CK(HashMap<String, String> dict_fds, String schema) {
         ArrayList<String> ck = new ArrayList<>();
         ArrayList<String> combos = new ArrayList<>();
